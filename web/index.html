@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>漆线雕学徒培训与上岗资格台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="seal">漆线雕</span>
+      <div>
+        <h1>学徒培训与上岗资格台</h1>
+        <div class="sub">建课 · 报名 · 学习 · 考核 · 复评 · 发证 · 派工 全流程受控</div>
+      </div>
+    </div>
+    <div class="identity">
+      <label>当前身份
+        <select id="userSelect"></select>
+      </label>
+      <button id="refreshBtn" class="btn ghost" type="button">刷新数据</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="base" class="tab active">① 建课与基础设置</button>
+    <button data-tab="enroll" class="tab">② 报名与学习</button>
+    <button data-tab="assess" class="tab">③ 考核与复评</button>
+    <button data-tab="cert" class="tab">④ 发证与资格</button>
+    <button data-tab="assign" class="tab">⑤ 派工上岗</button>
+    <button data-tab="audit" class="tab">审计与总览</button>
+  </nav>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <main>
+    <!-- ① 基础设置 -->
+    <section data-pane="base" class="pane">
+      <div class="grid3">
+        <div class="card">
+          <h2>技能项</h2>
+          <form data-create="skill" class="form">
+            <label>技能名称<input name="name" required placeholder="上金粉（关键工序）"></label>
+            <label class="check"><input type="checkbox" name="key_process"> 关键工序技能</label>
+            <label>连续合格次数要求<input name="min_consecutive" type="number" min="1" value="2"></label>
+            <button class="btn admin-only">新建技能</button>
+          </form>
+          <div data-list="skills" class="list"></div>
+        </div>
+
+        <div class="card">
+          <h2>课程（门控标准）</h2>
+          <form data-create="course" class="form">
+            <label>课程名称<input name="name" required placeholder="上金粉技艺"></label>
+            <label>关联技能<select name="skill_id" data-source="skills" data-value="id" data-label="name"></select></label>
+            <div class="grid3c">
+              <label>累计课时<input name="required_hours" type="number" min="0" value="24"></label>
+              <label>合格实操<input name="required_practice" type="number" min="0" value="6"></label>
+              <label>允许缺课<input name="allowed_absences" type="number" min="0" value="2"></label>
+            </div>
+            <button class="btn admin-only">建立课程</button>
+          </form>
+          <div data-list="courses" class="list"></div>
+        </div>
+
+        <div class="card">
+          <h2>工位</h2>
+          <form data-create="workstation" class="form">
+            <label>工位名称<input name="name" required placeholder="金粉关键工位 C"></label>
+            <label class="check"><input type="checkbox" name="is_key"> 关键工序工位</label>
+            <label>绑定技能（关键工位必填）
+              <select name="skill_id" data-source="skills" data-value="id" data-label="name" data-allowempty="1"></select>
+            </label>
+            <button class="btn admin-only">建立工位</button>
+          </form>
+          <div data-list="workstations" class="list"></div>
+          <h2 class="mt">人员</h2>
+          <form data-create="user" class="form inline">
+            <input name="name" required placeholder="姓名">
+            <select name="role"><option value="student">学员</option><option value="examiner">考评员</option><option value="admin">管理员</option></select>
+            <button class="btn admin-only">新增人员</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ② 报名与学习 -->
+    <section data-pane="enroll" class="pane hidden">
+      <div class="grid2">
+        <div class="card">
+          <h2>学员报名</h2>
+          <form data-create="enrollment" class="form">
+            <label>学员<select name="student_id" data-source="students" data-value="id" data-label="name"></select></label>
+            <label>课程<select name="course_id" data-source="courses" data-value="id" data-label="name"></select></label>
+            <button class="btn admin-only">报名</button>
+          </form>
+          <p class="hint">同一学员对同一课程重复报名会被拒绝（409）。</p>
+        </div>
+        <div class="card">
+          <h2>培训进度（按报名）</h2>
+          <div id="enrollmentProgress" class="list lg"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ 考核与复评 -->
+    <section data-pane="assess" class="pane hidden">
+      <div class="grid2">
+        <div class="card">
+          <h2>开考核单</h2>
+          <form data-create="assessment" class="form">
+            <label>报名（处于考核阶段）<select name="enrollment_id" data-source="enrollmentsAssessable" data-value="id" data-label="label"></select></label>
+            <div class="grid3c">
+              <label>类型<select name="kind"><option value="initial">初考</option><option value="retake">重考</option></select></label>
+              <label>合格线<input name="pass_score" type="number" value="60" min="0" max="100"></label>
+              <label>复评分差<input name="gap_threshold" type="number" value="15" min="1"></label>
+            </div>
+            <button class="btn">开考核单</button>
+          </form>
+          <div class="rulebox">
+            <b>评定规则</b>
+            <ul>
+              <li>至少 <b>2 名</b>考评员评分方可评定；考评员只能提交本人评分。</li>
+              <li>最高与最低分差 &gt; 阈值 → 自动进入复评（复评需 ≥3 名考评员）。</li>
+              <li>重复评分、对已锁定单评分、非考评员/代评、自评 → 一律拒绝。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card">
+          <h2>考核单与评分</h2>
+          <div id="assessmentList" class="list lg"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ④ 发证与资格 -->
+    <section data-pane="cert" class="pane hidden">
+      <div class="grid2">
+        <div class="card">
+          <h2>颁发资格证</h2>
+          <form data-create="certificate" class="form">
+            <label>通过考核的报名<select name="enrollment_id" data-source="enrollmentsCertifiable" data-value="id" data-label="label"></select></label>
+            <label>有效期（月）<input name="valid_months" type="number" value="12" min="1"></label>
+            <button class="btn admin-only">发证</button>
+          </form>
+          <p class="hint">同一学员同一技能只保留一份有效资格；重新发证会作废旧证。暂停/撤销后其关键工序派工立即停止。</p>
+          <div class="rulebox">
+            <b>快速演练</b>
+            <button id="makeExpiredBtn" class="btn warn admin-only" type="button">造一张“已过期”资格（验证到期停派工）</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>资格证台账</h2>
+          <div id="qualificationList" class="list lg"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑤ 派工 -->
+    <section data-pane="assign" class="pane hidden">
+      <div class="grid2">
+        <div class="card">
+          <h2>分配工位</h2>
+          <form data-create="assignment" class="form">
+            <label>学员<select name="student_id" data-source="students" data-value="id" data-label="name"></select></label>
+            <label>工位<select name="workstation_id" data-source="workstations" data-value="id" data-label="name"></select></label>
+            <button class="btn admin-only">派工</button>
+          </form>
+          <div class="rulebox">
+            <b>关键工序门控</b>
+            <ul>
+              <li>资格须 <b>active</b> 且在有效期内（过期/暂停/撤销立即拒派并停旧派工）。</li>
+              <li>连续合格次数达到技能要求（默认 2 次）。</li>
+              <li>同一学员只能一处在岗；同一工位同时只能一人。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card">
+          <h2>在岗与历史派工</h2>
+          <div id="assignmentList" class="list lg"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 审计 -->
+    <section data-pane="audit" class="pane hidden">
+      <div class="card">
+        <h2>关键操作审计（最近 200 条）</h2>
+        <div id="auditList" class="list lg mono"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
